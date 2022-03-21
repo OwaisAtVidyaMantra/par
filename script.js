@@ -823,6 +823,5 @@ function mergeJsonData(data){
       oldJson[key] = value
     }
   })
-  console.log(Object.values(oldJson).length);
   console.log(oldJson);
 }
