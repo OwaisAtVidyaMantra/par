@@ -47,7 +47,7 @@ let result = [];
 * 
 * @param {string[]} urls -  Array of JSON Urls to download
 */
-function multiFileDownloader(urls) {
+function loadJsons(urls) {
   let promises = [];
   let rejectedUrls = []
 
@@ -71,7 +71,7 @@ for (let i = 1; i <= 5; i++) {
 }
 
 // Call Multifile Downloader
-multiFileDownloader(urls)
+loadJsons(urls)
 
 function mergeJsonData(data){
   const oldJson = {
@@ -823,6 +823,5 @@ function mergeJsonData(data){
       oldJson[key] = value
     }
   })
-  console.log(Object.values(oldJson).length);
   console.log(oldJson);
 }
