@@ -1,4 +1,4 @@
-const startDate = new Date(Date.UTC(2021, 0, 1));
+const startDate = new Date(Date.UTC(2022, 0, 1));
 
 const MONTH_LIST = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -18,28 +18,28 @@ let request = (interval_name, date) => {
     const month = date.getUTCMonth();
     const dayOfYear = findDayOfYear(date);
     const hours = date.getUTCHours();
-    const jsonPath = "https://dyncdn.exampathfinder.com/tempjsons/event"
+
     if (interval_name == 'year') {
         const filename = `/y/${year}.json`;
         // console.log(`Time: Year ${year}, File: ${filename}`);
-        urls.push(jsonPath + filename);
+        urls.push(filename);
     }
     else if (interval_name == 'month') {
         const filename = `/m/${year}-${month + 1}.json`;
         const name = MONTH_LIST[month];
-        // console.log(`Time: ${name} ${year}, File: ${filename}`);
-        urls.push(jsonPath + filename);
+        console.log(`Time: ${name} ${year}, File: ${filename}`);
+        urls.push(filename);
     }
     else if (interval_name == 'day') {
         const filename = `/d/${year}-${dayOfYear}.json`;
-        // console.log(`Time: Day ${dayOfYear} of ${year}, File: ${filename}`);
-        urls.push(jsonPath + filename);
+        console.log(`Time: Day ${dayOfYear} of ${year}, File: ${filename}`);
+        urls.push(filename);
 
     }
     else if (interval_name == 'hour') {
         const filename = `/h/${year}-${dayOfYear}-${hours + 1}.json`;
-        // console.log(`Time: Hour ${hours + 1} of day ${dayOfYear}, ${year}, File: ${filename}`);
-        // urls.push(jsonPath + filename);
+        console.log(`Time: Hour ${hours + 1} of day ${dayOfYear}, ${year}, File: ${filename}`);
+        urls.push(filename);
     }
     else {
         console.log('Unknown case', interval_name, 'found');
@@ -76,8 +76,6 @@ function initialSync() {
     const currentDate = new Date(Date.now())
     let dateItr = startDate;
     forward(dateItr, currentDate);
-    loadJsons(urls);
-
 }
 
 function sync(lastFetch, currentDate) {
@@ -111,93 +109,3 @@ function sync(lastFetch, currentDate) {
 }
 
 // const currentDate = new Date(2023, 2, 4);
-
-initialSync()
-
-/**
- * Function to download a file with in 5 seconds
- * 
- * @param {string} url - URL of JSON to download.
- * @returns {Promise} - promise with data if promise is fulfilled else rejection status with url
- */
-function downloadJSON(url) {
-  return new Promise((resolve, reject) => {
-    // Controller to Abort Fetch , to be used in promise
-    const controller = new AbortController();
-    let downloadStatus;
-    fetch(url, { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        downloadStatus = true;
-        resolve(data)
-      }).catch((err) => {
-        reject({url: url, err : err})
-      })
-    // Abort Fetching JSON if it takes more than 5sec and reject promise with url as a reason
-    setTimeout(() => {
-      if (!downloadStatus) {
-        count += 1;
-        if (count == 3) {
-          reject("Time Limit Exceeded");
-        }
-        else {
-          controller.abort();
-          downloadJSON(url).then((data) => {
-            resolve(data);
-          }).catch((err) => {
-            reject({url: url, err : err})
-          })
-        }
-      }
-    }, 5000);
-  });
-}
-
-
-// Track Count to set number of Times to retry the failed downloads.
-let count = 0;
-let result = [];
-/**
-* Function to download multiple JSON files parallelly and with in 5sec.
-* If any download fails retry it max 5 times
-* 
-* @param {string[]} urls -  Array of JSON Urls to download
-*/
-function loadJsons(urls) {
-  let promises = [];
-  console.log(urls);
-  urls.forEach((url) => {
-    promises.push(downloadJSON(url));
-  })
-  Promise.allSettled(promises).then((results) => {
-    results.forEach((res) => {
-        if(res.status === "fulfilled") result = [...result, res.value]
-    });
-    mergeJsonData(result)
-  })
-
-}
-
-const initialJsonData = {}
-function mergeJsonData(data){
-  data.forEach((item) => {
-    for (const [key, value] of Object.entries(item)){
-        initialJsonData[key] = value
-        // if(key in initialJsonData) console.log(key + "already present");
-    }
-  })
-}
-
-fetch("https://dyncdn.exampathfinder.com/tagsCompressed/events.json").then((res) => res.json()).then((data) => {
-    const extraEvents = {}
-    for (const [key, value] of Object.entries(data)){
-        if(!(key in initialJsonData)){
-            extraEvents[key] = value
-        }
-        
-    }
-    console.log(`Initial Events Json Length - ${Object.values(initialJsonData).length}`);
-    console.log(`Events Not  Present in initial Json - ${Object.values(extraEvents).length}`);
-    console.log(`Total Json length of all events - ${Object.values(data).length}`);
-    console.log(extraEvents);
-})
