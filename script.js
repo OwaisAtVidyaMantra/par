@@ -133,10 +133,9 @@ function downloadJSON(url) {
         downloadFailed = false;
         resolve(data)
       }).catch((err) => {
-        downloadFailed = true
         downloadedInTime = true
-        reject({url: url, err : err})
-
+        downloadFailed = true
+        reject()
       })
     // Abort Fetching JSON if it takes more than 5sec and reject promise with url as a reason
     setTimeout(() => {
@@ -148,7 +147,6 @@ function downloadJSON(url) {
         else {
           controller.abort();
           downloadJSON(url)
-          console.log("Retry", url);
         }
       }
     }, 5000);
@@ -186,9 +184,12 @@ function mergeJsonData(data){
         initialJsonData[key] = value
     }
   })
+  loadOldJsons()
 }
 
-fetch("https://dyncdn.exampathfinder.com/tagsCompressed/events.json").then((res) => res.json()).then((data) => {
+
+function loadOldJsons(){
+    fetch("https://dyncdn.exampathfinder.com/tagsCompressed/events.json").then((res) => res.json()).then((data) => {
     console.log(`Total Json length of all events - ${Object.values(data).length}`);    
 const extraEvents = {}
     let extraKeys = []
@@ -211,3 +212,4 @@ const extraEvents = {}
     console.log(initialJsonData);
     console.log(data);
 })
+}
