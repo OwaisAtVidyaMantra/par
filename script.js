@@ -124,29 +124,31 @@ function downloadJSON(url) {
   return new Promise((resolve, reject) => {
     // Controller to Abort Fetch , to be used in promise
     const controller = new AbortController();
-    let downloadStatus;
+    let downloadedInTime;
+    let downloadFailed;
     fetch(url, { signal: controller.signal })
       .then((response) => response.json())
       .then((data) => {
-        downloadStatus = true;
+        downloadedInTime = true;
+        downloadFailed = false;
         resolve(data)
       }).catch((err) => {
+        downloadFailed = true
+        downloadedInTime = true
         reject({url: url, err : err})
+
       })
     // Abort Fetching JSON if it takes more than 5sec and reject promise with url as a reason
     setTimeout(() => {
-      if (!downloadStatus) {
+      if (!downloadedInTime && !downloadFailed) {
         count += 1;
         if (count == 3) {
-          reject("Time Limit Exceeded");
+          reject();
         }
         else {
           controller.abort();
-          downloadJSON(url).then((data) => {
-            resolve(data);
-          }).catch((err) => {
-            reject({url: url, err : err})
-          })
+          downloadJSON(url)
+          console.log("Retry", url);
         }
       }
     }, 5000);
@@ -165,7 +167,6 @@ let result = [];
 */
 function loadJsons(urls) {
   let promises = [];
-  console.log(urls);
   urls.forEach((url) => {
     promises.push(downloadJSON(url));
   })
@@ -183,21 +184,30 @@ function mergeJsonData(data){
   data.forEach((item) => {
     for (const [key, value] of Object.entries(item)){
         initialJsonData[key] = value
-        // if(key in initialJsonData) console.log(key + "already present");
     }
   })
 }
 
 fetch("https://dyncdn.exampathfinder.com/tagsCompressed/events.json").then((res) => res.json()).then((data) => {
-    const extraEvents = {}
+    console.log(`Total Json length of all events - ${Object.values(data).length}`);    
+const extraEvents = {}
+    let extraKeys = []
     for (const [key, value] of Object.entries(data)){
-        if(!(key in initialJsonData)){
+        const updateDate = new Date(Number(value.lastUpdated) * 1000)
+        const date = new Date();
+        date.setDate(date.getDate() - 2);
+        if(!(key in initialJsonData) && updateDate >= date ){
             extraEvents[key] = value
+            extraKeys.push(key)
         }
         
     }
+    extraKeys.forEach((key, index) => {
+        delete data[key]
+    })
     console.log(`Initial Events Json Length - ${Object.values(initialJsonData).length}`);
     console.log(`Events Not  Present in initial Json - ${Object.values(extraEvents).length}`);
     console.log(`Total Json length of all events - ${Object.values(data).length}`);
-    console.log(extraEvents);
+    console.log(initialJsonData);
+    console.log(data);
 })
