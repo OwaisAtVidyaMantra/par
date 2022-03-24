@@ -1,4 +1,5 @@
 const startDate = new Date(Date.UTC(2021, 0, 1));
+let count;
 
 const MONTH_LIST = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -120,42 +121,43 @@ initialSync()
  * @param {string} url - URL of JSON to download.
  * @returns {Promise} - promise with data if promise is fulfilled else rejection status with url
  */
-function downloadJSON(url) {
-  return new Promise((resolve, reject) => {
-    // Controller to Abort Fetch , to be used in promise
-    const controller = new AbortController();
-    let downloadedInTime;
-    let downloadFailed;
-    fetch(url, { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        downloadedInTime = true;
-        downloadFailed = false;
-        resolve(data)
-      }).catch((err) => {
-        downloadedInTime = true
-        downloadFailed = true
-        reject()
-      })
-    // Abort Fetching JSON if it takes more than 5sec and reject promise with url as a reason
-    setTimeout(() => {
-      if (!downloadedInTime && !downloadFailed) {
-        count += 1;
-        if (count == 3) {
-          reject();
+ function downloadJSON(url) {
+    return new Promise((resolve, reject) => {
+      // Controller to Abort Fetch , to be used in promise
+      
+      const controller = new AbortController();
+      let downloadStatus;
+      fetch(url, { signal: controller.signal })
+        .then((response) => response.json())
+        .then((data) => {
+          downloadStatus = true;
+          resolve(data)
+        })
+      // Abort Fetching JSON if it takes more than 5sec and reject promise with url as a reason
+      setTimeout(() => {
+        if (!downloadStatus) {
+          
+          if (count > 3) {
+            reject("Time Limit Exceeded");
+            console.log("time limit exceeded");
+          }
+          else {
+            controller.abort();
+            count += 1;
+            downloadJSON(url).then((data) => {
+              resolve(data);
+            }).catch((err) => {
+              reject();
+            })
+          }
         }
-        else {
-          controller.abort();
-          downloadJSON(url)
-        }
-      }
-    }, 5000);
-  });
-}
+      }, 10000);
+    });
+  }
 
 
 // Track Count to set number of Times to retry the failed downloads.
-let count = 0;
+
 let result = [];
 /**
 * Function to download multiple JSON files parallelly and with in 5sec.
@@ -166,9 +168,11 @@ let result = [];
 function loadJsons(urls) {
   let promises = [];
   urls.forEach((url) => {
+    count = 0;
     promises.push(downloadJSON(url));
   })
   Promise.allSettled(promises).then((results) => {
+      console.log(results);
     results.forEach((res) => {
         if(res.status === "fulfilled") result = [...result, res.value]
     });
@@ -196,7 +200,7 @@ const extraEvents = {}
     for (const [key, value] of Object.entries(data)){
         const updateDate = new Date(Number(value.lastUpdated) * 1000)
         const date = new Date();
-        date.setDate(date.getDate() - 2);
+        date.setDate(date.getDate() - 3);
         if(!(key in initialJsonData) && updateDate >= date ){
             extraEvents[key] = value
             extraKeys.push(key)

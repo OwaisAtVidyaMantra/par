@@ -108,4 +108,3 @@ function sync(lastFetch, currentDate) {
     forward(dateItr, currentDate);
 }
 
-// const currentDate = new Date(2023, 2, 4);
